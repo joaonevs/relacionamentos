@@ -27,3 +27,4 @@ Para apagar uma análise, use o botão "Excluir" no histórico.
 
 ## Observações
 Leitura automatizada e probabilística, não é diagnóstico. Em casos de violência, procure apoio profissional (Brasil: Ligue 180).
+# relacionamentos
