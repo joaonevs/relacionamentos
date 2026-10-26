@@ -1,0 +1,15 @@
+{
+  "name": "espelho-analise-relacionamentos",
+  "version": "1.0.0",
+  "description": "Análise de relacionamentos com IA e histórico em SQLite",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "openai": "^4.77.0",
+    "better-sqlite3": "^11.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}

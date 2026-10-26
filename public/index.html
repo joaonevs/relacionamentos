@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espelho — Análise de Relacionamentos</title>
+<style>
+:root{--bg:#faf6f1;--card:#fff;--ink:#2a2226;--mut:#7a6e72;--line:#eadfd6;--a:#c2410c;--b:#0f766e;--acc:#9f1239;--soft:#fdeee6}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#17121a;--card:#221b26;--ink:#f3eaf0;--mut:#a89aa5;--line:#372d3d;--a:#fb923c;--b:#2dd4bf;--acc:#fb7185;--soft:#2c2030}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI",system-ui,sans-serif}
+.wrap{display:flex;gap:20px;max-width:1150px;margin:0 auto;padding:20px 16px 60px}
+aside{width:240px;flex-shrink:0}
+main{flex:1;min-width:0}
+@media(max-width:800px){.wrap{flex-direction:column}aside{width:100%}}
+h1{font:600 30px/1.1 Georgia,serif;margin:8px 0 4px}
+h2{font:600 20px Georgia,serif;margin:0 0 10px}
+h3{font:600 14px Georgia,serif;margin:0 0 8px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.sub{color:var(--mut);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab{border:1px solid var(--line);background:none;color:var(--ink);padding:8px 14px;border-radius:99px;cursor:pointer;font:inherit;font-size:14px}
+.tab[aria-selected=true]{background:var(--acc);color:#fff;border-color:var(--acc)}
+textarea,input[type=text]{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:12px;font:inherit;resize:vertical}
+textarea{min-height:170px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.pri{background:var(--acc);color:#fff;border:0;border-radius:12px;padding:12px 20px;font:inherit;font-weight:600;cursor:pointer}
+.sec{background:none;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:10px 16px;font:inherit;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+.hint{font-size:13px;color:var(--mut)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.thumbs img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.q{margin-bottom:14px}.q label{display:block;font-weight:600;margin-bottom:6px}
+.hidden{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.leg{display:flex;gap:14px;font-size:13px;color:var(--mut);margin-bottom:8px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.bar{height:14px;border-radius:7px;background:var(--line);margin:4px 0;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:7px}
+.bl{display:flex;justify-content:space-between;font-size:13px}
+.big{font:700 42px Georgia,serif;color:var(--acc)}
+ul{padding-left:20px;margin:6px 0}li{margin:4px 0}
+.tag{display:inline-block;background:var(--soft);border-radius:99px;padding:3px 12px;font-size:13px;margin-right:6px}
+.err{color:var(--acc);margin-top:10px}
+.pos{color:var(--b)}
+.note{font-size:12px;color:var(--mut);margin-top:24px}
+.hist{display:flex;justify-content:space-between;gap:6px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:8px;background:var(--card);cursor:pointer;font-size:13px}
+.hist:hover{border-color:var(--acc)}
+.hist button{background:none;border:0;color:var(--mut);cursor:pointer;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<aside><h1>Espelho</h1><p class="sub" style="font-size:14px">Histórico salvo no SQLite</p>
+  <button class="sec" style="width:100%;margin-bottom:12px" onclick="novo()">+ Nova análise</button>
+  <div id="hist"></div></aside>
+<main>
+<p class="sub">Análise de conversas e relacionamentos: intenção, interesse, presença e reciprocidade.</p>
+
+<section id="inp" class="card">
+  <div class="tabs">
+    <button class="tab" data-t="txt" aria-selected="true">Colar conversa</button>
+    <button class="tab" data-t="img" aria-selected="false">Prints</button>
+    <button class="tab" data-t="desc" aria-selected="false">Descrever situação</button>
+  </div>
+  <div id="p-txt"><textarea id="txt" placeholder="Cole aqui a conversa do WhatsApp (Exportar conversa ou copiar e colar)…"></textarea></div>
+  <div id="p-img" class="hidden"><input type="file" id="files" accept="image/*" multiple>
+    <div class="hint">Até 5 prints.</div><div class="thumbs" id="thumbs"></div></div>
+  <div id="p-desc" class="hidden"><textarea id="desc" placeholder="Conte o que aconteceu: quem são vocês, há quanto tempo se conhecem, o que te incomodou ou te deixou em dúvida…"></textarea></div>
+  <div class="row"><input type="text" id="ctx" placeholder="Tipo de relação (ex.: começo de namoro, ficante, amigo, família)" style="flex:1;min-width:220px">
+  <button class="pri" id="go">Analisar</button></div>
+  <div class="err" id="err"></div>
+</section>
+
+<section id="qs" class="card hidden"><h2>Antes de concluir, preciso entender melhor</h2>
+  <div id="qlist"></div>
+  <div class="row"><button class="pri" id="send">Gerar relatório</button><button class="sec" id="skip">Pular perguntas</button></div>
+  <div class="err" id="err2"></div></section>
+
+<section id="rep" class="hidden"></section>
+<p class="note">Esta análise é uma leitura automatizada e probabilística, não um diagnóstico. Em situações de violência ou abuso, procure apoio profissional (no Brasil, Ligue 180).</p>
+</main></div>
+<script>
+const $=id=>document.getElementById(id);
+let imgs=[],curId=null,curQs=[];
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const n=v=>Number.isFinite(+v)?+v:0;
+
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));
+ ["txt","img","desc"].forEach(k=>$("p-"+k).classList.toggle("hidden",k!==b.dataset.t))});
+$("files").onchange=e=>{imgs=[...e.target.files].slice(0,5);$("thumbs").innerHTML="";
+ imgs.forEach(f=>{const i=new Image();i.src=URL.createObjectURL(f);$("thumbs").appendChild(i)})};
+
+function busy(b,on){b.disabled=on;b.dataset.t=b.dataset.t||b.textContent;b.textContent=on?"Analisando…":b.dataset.t}
+async function api(url,opt){const r=await fetch(url,opt);const j=await r.json();if(!r.ok)throw new Error(j.erro||"Erro");return j}
+
+function novo(){curId=null;["txt","desc","ctx"].forEach(k=>$(k).value="");imgs=[];$("thumbs").innerHTML="";$("files").value="";
+ $("inp").classList.remove("hidden");$("qs").classList.add("hidden");$("rep").classList.add("hidden")}
+
+async function loadHist(){
+ const l=await api("/api/analyses");
+ $("hist").innerHTML=l.map(a=>`<div class="hist" onclick="abrir(${a.id})"><span>#${a.id} · ${esc(a.relation_type||"sem tipo")}<br><span class="hint">${esc(a.created_at.slice(0,16))} · ${a.mensagens} msgs${a.status!=="concluido"?" · pendente":""}</span></span><button onclick="event.stopPropagation();del(${a.id})">Excluir</button></div>`).join("")||'<div class="hint">Nenhuma análise ainda.</div>'}
+async function del(id){if(!confirm("Excluir esta análise e suas mensagens?"))return;await api("/api/analyses/"+id,{method:"DELETE"});if(curId===id)novo();loadHist()}
+async function abrir(id){const a=await api("/api/analyses/"+id);curId=id;
+ $("inp").classList.add("hidden");$("qs").classList.add("hidden");$("rep").classList.add("hidden");
+ if(a.relatorio)render(a.relatorio);else if(a.perguntas)showQs(a.perguntas)}
+
+$("go").onclick=async()=>{
+ $("err").textContent="";
+ if(!$("txt").value.trim()&&!$("desc").value.trim()&&!imgs.length){$("err").textContent="Cole uma conversa, envie prints ou descreva a situação.";return}
+ busy($("go"),true);
+ try{
+  const fd=new FormData();fd.append("ctx",$("ctx").value);fd.append("txt",$("txt").value);fd.append("desc",$("desc").value);
+  imgs.forEach(f=>fd.append("files",f));
+  const r=await api("/api/analyses",{method:"POST",body:fd});
+  curId=r.id;if(r.perguntas)showQs(r.perguntas);else render(r.relatorio);loadHist();
+ }catch(e){$("err").textContent=e.message}
+ busy($("go"),false)};
+
+function showQs(ps){curQs=ps;$("inp").classList.add("hidden");
+ $("qlist").innerHTML=ps.map((p,i)=>`<div class="q"><label for="q${i}">${esc(p)}</label><input type="text" id="q${i}"></div>`).join("");
+ $("qs").classList.remove("hidden")}
+
+async function final(withA){
+ busy($("send"),true);$("err2").textContent="";
+ try{const answers=withA?curQs.map((_,i)=>$("q"+i).value):[];
+  const r=await api(`/api/analyses/${curId}/finish`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers})});
+  render(r.relatorio);loadHist();
+ }catch(e){$("err2").textContent=e.message}
+ busy($("send"),false)}
+$("send").onclick=()=>final(true);$("skip").onclick=()=>final(false);
+
+function pair(title,v,nm,unit,max){
+ const m=max||Math.max(1,...v.map(n));
+ return `<div class="card"><h2>${title}</h2><div class="leg"><span><i class="dot" style="background:var(--a)"></i>${esc(nm[0])}</span><span><i class="dot" style="background:var(--b)"></i>${esc(nm[1])}</span></div>`+
+ v.map((x,i)=>`<div class="bl"><span>${esc(nm[i])}</span><b>${x==null?"—":Math.round(n(x)*10)/10+(unit||"")}</b></div><div class="bar"><i style="width:${Math.min(100,n(x)/m*100)}%;background:var(${i?"--b":"--a"})"></i></div>`).join("")+`</div>`}
+
+function line(ev,nm){
+ if(!ev||ev.length<2)return"";const W=600,H=200,p=30,x=i=>p+i*(W-2*p)/(ev.length-1),y=v=>H-p-n(v)/100*(H-2*p);
+ const path=k=>ev.map((e,i)=>(i?"L":"M")+x(i)+","+y((e.interesse||[])[k])).join(" ");
+ return `<div class="card"><h2>Evolução do interesse</h2><div class="leg"><span><i class="dot" style="background:var(--a)"></i>${esc(nm[0])}</span><span><i class="dot" style="background:var(--b)"></i>${esc(nm[1])}</span></div>
+ <div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:420px">
+ ${[0,50,100].map(g=>`<line x1="${p}" x2="${W-p}" y1="${y(g)}" y2="${y(g)}" stroke="var(--line)"/><text x="4" y="${y(g)+4}" font-size="10" fill="var(--mut)">${g}</text>`).join("")}
+ <path d="${path(0)}" fill="none" stroke="var(--a)" stroke-width="3"/><path d="${path(1)}" fill="none" stroke="var(--b)" stroke-width="3"/>
+ ${ev.map((e,i)=>`<text x="${x(i)}" y="${H-8}" font-size="10" text-anchor="middle" fill="var(--mut)">${esc(e.rotulo)}</text>`).join("")}</svg></div></div>`}
+
+function render(r){
+ const nm=(r.nomes&&r.nomes.length>1)?r.nomes:["Pessoa A","Pessoa B"],m=r.metricas||{},l=r.local;
+ const recip=Math.round(n(m.reciprocidade));
+ const li=a=>(a||[]).map(x=>`<li>${esc(x)}</li>`).join("");
+ $("inp").classList.add("hidden");$("qs").classList.add("hidden");
+ $("rep").innerHTML=`
+ <div class="card"><h2>Relatório</h2><span class="tag">${esc(r.tipo||"")}</span><span class="tag">confiança: ${esc(r.confianca||"—")}</span><span class="tag">${r.estimado?"métricas estimadas":"métricas calculadas da conversa"}</span>
+  <p style="margin-top:12px"><b>${esc(r.resumo)}</b></p>${String(r.opiniao||"").split(/\n\n+/).map(t=>`<p>${esc(t)}</p>`).join("")}</div>
+ <div class="grid">
+  <div class="card"><h2>Reciprocidade</h2><div class="big">${recip}%</div><div class="bar"><i style="width:${recip}%;background:var(--acc)"></i></div><div class="hint">Equilíbrio de esforço, iniciativa, atenção e investimento emocional.</div></div>
+  ${pair("Quem inicia a conversa (%)",m.iniciativa_pct||[0,0],nm,"%",100)}
+  ${pair("Quem inicia conflitos",m.conflitos_iniciados||[0,0],nm,"")}
+  ${pair("Agressividade",m.agressividade||[0,0],nm,"/100",100)}
+  ${pair("Demonstração de interesse",m.interesse||[0,0],nm,"/100",100)}
+  ${pair("Presença e atenção",m.presenca||[0,0],nm,"/100",100)}
+  ${pair("Tempo mediano de resposta",m.tempo_resposta_min||[0,0],nm," min")}
+  ${l?pair("Mensagens enviadas",l.msgs,nm,""):""}
+ </div>
+ ${line(r.evolucao,nm)}
+ <div class="card"><h2>Intenções</h2><p>${esc(r.intencoes)}</p></div>
+ <div class="grid"><div class="card"><h2 class="pos">Sinais positivos</h2><ul>${li(r.sinais_positivos)}</ul></div>
+ <div class="card"><h2 style="color:var(--acc)">Pontos de atenção</h2><ul>${li(r.alertas)}</ul></div></div>
+ <div class="card"><h2>Recomendações</h2><ul>${li(r.recomendacoes)}</ul><div class="row"><button class="sec" onclick="novo()">Nova análise</button></div></div>`;
+ $("rep").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"})}
+loadHist();
+</script>
+</body>
+</html>
